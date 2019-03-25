@@ -13,12 +13,6 @@ import retrofit2.http.Path;
 
 public interface RequestApi {
 
-    @GET("todos/1")
-    Flowable<ResponseBody> makeQuery();
-
-    @GET("todos/1")
-    Observable<ResponseBody> makeObservableQuery();
-
     @GET("posts")
     Observable<List<Post>> getPosts();
 
