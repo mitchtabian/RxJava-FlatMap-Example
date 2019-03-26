@@ -3,6 +3,7 @@ package com.codingwithmitch.rxjavaflatmapexample;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
@@ -13,6 +14,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
+
 import android.os.Bundle;
 import android.util.Log;
 
@@ -22,6 +24,7 @@ import com.codingwithmitch.rxjavaflatmapexample.requests.ServiceGenerator;
 
 import java.util.List;
 import java.util.Random;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,12 +46,13 @@ public class MainActivity extends AppCompatActivity {
 
         initRecyclerView();
 
+
         getPostsObservable()
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Function<Post, ObservableSource<Post>>() {
+                .concatMap(new Function<Post, ObservableSource<Post>>() {
                     @Override
                     public ObservableSource<Post> apply(Post post) throws Exception {
-                        return getCommentsObservable(post);
+                        return getCommentsObservable(post); // return an updated Observable<Post> with comments
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
@@ -60,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(Post post) {
+                        // update the post in the list
                         updatePost(post);
                     }
 
@@ -70,21 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onComplete() {
-                    }
-                });
-    }
 
-    private Observable<Post> getPostsObservable(){
-        return ServiceGenerator.getRequestApi()
-                .getPosts()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Function<List<Post>, ObservableSource<Post>>() {
-                    @Override
-                    public ObservableSource<Post> apply(final List<Post> posts) throws Exception {
-                        adapter.setPosts(posts);
-                        return Observable.fromIterable(posts)
-                                .subscribeOn(Schedulers.io());
                     }
                 });
     }
@@ -93,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
         adapter.updatePost(post);
     }
 
+
     private Observable<Post> getCommentsObservable(final Post post){
         return ServiceGenerator.getRequestApi()
                 .getComments(post.getId())
@@ -100,24 +92,42 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public Post apply(List<Comment> comments) throws Exception {
 
-                        int delay = ((new Random()).nextInt(5) + 1) * 1000; // sleep thread for x ms
+                        int delay = ((new Random()).nextInt(5) + 1) * 1000;
                         Thread.sleep(delay);
-                        Log.d(TAG, "apply: sleeping thread " + Thread.currentThread().getName() + " for " + String.valueOf(delay)+ "ms");
+                        Log.d(TAG, "apply: sleeping thread: " + Thread.currentThread().getName() + " for "
+                        + String.valueOf(delay) + " ms");
 
                         post.setComments(comments);
+
                         return post;
                     }
                 })
                 .subscribeOn(Schedulers.io());
-
     }
+
+
+    private Observable<Post> getPostsObservable(){
+        return ServiceGenerator.getRequestApi()
+                .getPosts()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap(new Function<List<Post>, ObservableSource<Post>>() {
+                    @Override
+                    public ObservableSource<Post> apply(List<Post> posts) throws Exception {
+                        adapter.setPosts(posts);
+                        return Observable.fromIterable(posts)
+                                .subscribeOn(Schedulers.io());
+                    }
+                });
+    }
+
 
     private void initRecyclerView(){
         adapter = new RecyclerAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
     }
-    
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
