@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    private void updatePost(final Post p){
+    private void updatePost(Post post){
         adapter.updatePost(post);
     }
 
