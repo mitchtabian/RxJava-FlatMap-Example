@@ -14,22 +14,29 @@ import io.reactivex.SingleSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 
 
+import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ProgressBar;
 
 import com.codingwithmitch.rxjavaflatmapexample.models.Comment;
 import com.codingwithmitch.rxjavaflatmapexample.models.Post;
 import com.codingwithmitch.rxjavaflatmapexample.requests.ServiceGenerator;
 
+import org.reactivestreams.Subscription;
+
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends AppCompatActivity implements RecyclerAdapter.OnPostClickListener {
@@ -38,11 +45,13 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
 
     //ui
     private RecyclerView recyclerView;
+    private ProgressBar progressBar;
 
     // vars
     private CompositeDisposable disposables = new CompositeDisposable();
     private RecyclerAdapter adapter;
-    private PublishSubject<Post> publishSubject = PublishSubject.create();
+    private PublishSubject<Post> publishSubject = PublishSubject.create(); // for selecting a post
+    private static final int PERIOD = 100;
 
 
     @Override
@@ -50,33 +59,50 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         recyclerView = findViewById(R.id.recycler_view);
+        progressBar = findViewById(R.id.progress_bar);
 
         initRecyclerView();
         retrievePosts();
+    }
 
+    private void initSwitchMapDemo(){
         publishSubject
+
+                // apply switchmap operator so only one Observable can be used at a time.
+                // it clears the previous one
                 .switchMap(new Function<Post, ObservableSource<Post>>() {
                     @Override
-                    public ObservableSource<Post> apply(Post post) throws Exception {
-                        return ServiceGenerator.getRequestApi()
-                                .getPost(post.getId())
-                                .subscribeOn(Schedulers.io())
-                                .map(new Function<Post, Post>() { // function that does nothing. Just sleeps the thread
-                                    @Override
-                                    public Post apply(Post post) throws Exception {
-                                        Log.d(TAG, "apply: retrieving individual post data: post id: " + post.getId());
-                                        try {
-                                            Thread.sleep(3000); // thread blocking call
-                                        } catch (InterruptedException ex) {
-                                            // check if the interrupt is due to cancellation
-                                            // if so, no need to signal the InterruptedException
-                                        }
-                                        Log.d(TAG, "apply: sleeping thread: " + Thread.currentThread().getName() + " for 3000 ms");
+                    public ObservableSource<Post> apply(final Post post) throws Exception {
+                        return Observable
 
-                                        return post;
+                                // simulate slow network speed with interval + takeWhile + filter operators
+                                .interval(PERIOD, TimeUnit.MILLISECONDS)
+                                .subscribeOn(AndroidSchedulers.mainThread())
+                                .takeWhile(new Predicate<Long>() { // stop the process if more than 5 seconds passes
+                                    @Override
+                                    public boolean test(Long aLong) throws Exception {
+                                        Log.d(TAG, "test: " + Thread.currentThread().getName() + ", " + aLong);
+                                        progressBar.setMax(3000 - PERIOD);
+                                        progressBar.setProgress(Integer.parseInt(String.valueOf((aLong * PERIOD) + PERIOD)));
+                                        return aLong <= (3000 / PERIOD);
                                     }
                                 })
-                                .observeOn(AndroidSchedulers.mainThread());
+                                .filter(new Predicate<Long>() {
+                                    @Override
+                                    public boolean test(Long aLong) throws Exception {
+                                        return aLong >= (3000 / PERIOD);
+                                    }
+                                })
+
+                                // flatmap to convert Long from the interval operator into a Observable<Post>
+                                .subscribeOn(Schedulers.io())
+                                .flatMap(new Function<Long, ObservableSource<Post>>() {
+                                    @Override
+                                    public ObservableSource<Post> apply(Long aLong) throws Exception {
+                                        return ServiceGenerator.getRequestApi()
+                                                .getPost(post.getId());
+                                    }
+                                });
                     }
                 })
                 .subscribe(new Observer<Post>() {
@@ -87,13 +113,13 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
 
                     @Override
                     public void onNext(Post post) {
-                        Log.d(TAG, "onNext: got the post! " + post.getId());
+                        Log.d(TAG, "onNext: done.");
                         navViewPostActivity(post);
                     }
 
                     @Override
                     public void onError(Throwable e) {
-
+                        Log.e(TAG, "onError: ", e);
                     }
 
                     @Override
@@ -102,12 +128,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
                     }
                 });
     }
-
-
-    private void updatePost(Post post){
-        adapter.updatePost(post);
-    }
-
 
     private void retrievePosts(){
         ServiceGenerator.getRequestApi()
@@ -137,6 +157,12 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        progressBar.setProgress(0);
+        initSwitchMapDemo();
+    }
 
     private void initRecyclerView(){
         adapter = new RecyclerAdapter(this);
@@ -153,7 +179,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause: called.");
-        disposables.dispose();
+        disposables.clear();
         super.onPause();
     }
 
@@ -162,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
 
         Log.d(TAG, "onPostClick: clicked.");
 
+        // submit the selected post object to be queried
         publishSubject.onNext(adapter.getPosts().get(position));
     }
 }
