@@ -14,11 +14,6 @@ public interface RequestApi {
     @GET("posts")
     Observable<List<Post>> getPosts();
 
-    @GET("posts/{id}/comments")
-    Observable<List<Comment>> getComments(
-            @Path("id") int id
-    );
-
     @GET("posts/{id}")
     Observable<Post> getPost(
             @Path("id") int id

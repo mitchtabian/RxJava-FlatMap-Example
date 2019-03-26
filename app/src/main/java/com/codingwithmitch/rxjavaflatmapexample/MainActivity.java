@@ -52,34 +52,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
         recyclerView = findViewById(R.id.recycler_view);
 
         initRecyclerView();
-
-
-        getPostsObservable()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<Post>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-                        Log.d(TAG, "onSubscribe: subscribing.");
-                        disposables.add(d);
-                    }
-
-                    @Override
-                    public void onNext(Post post) {
-                        // update the post in the list
-                        updatePost(post);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(TAG, "onError: ", e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-
-                    }
-                });
+        retrievePosts();
 
         publishSubject
                 .switchMap(new Function<Post, ObservableSource<Post>>() {
@@ -136,45 +109,32 @@ public class MainActivity extends AppCompatActivity implements RecyclerAdapter.O
     }
 
 
-    private Observable<Post> getCommentsObservable(final Post post){
-        return ServiceGenerator.getRequestApi()
-                .getComments(post.getId())
-                .map(new Function<List<Comment>, Post>() {
-                    @Override
-                    public Post apply(List<Comment> comments) throws Exception {
-
-                        int delay = ((new Random()).nextInt(5) + 1) * 1000;
-                        try {
-                            Thread.sleep(delay); // thread blocking call
-                        } catch (InterruptedException ex) {
-                            // check if the interrupt is due to cancellation
-                            // if so, no need to signal the InterruptedException
-                        }
-//                        Log.d(TAG, "apply: sleeping thread: " + Thread.currentThread().getName() + " for "
-//                        + String.valueOf(delay) + " ms");
-
-                        post.setComments(comments);
-
-                        return post;
-                    }
-                })
-                .subscribeOn(Schedulers.io());
-    }
-
-
-    private Observable<Post> getPostsObservable(){
-        return ServiceGenerator.getRequestApi()
+    private void retrievePosts(){
+        ServiceGenerator.getRequestApi()
                 .getPosts()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Function<List<Post>, ObservableSource<Post>>() {
-                    @Override
-                    public ObservableSource<Post> apply(List<Post> posts) throws Exception {
-                        adapter.setPosts(posts);
-                        return Observable.fromIterable(posts)
-                                .subscribeOn(Schedulers.io());
-                    }
-                });
+        .subscribe(new Observer<List<Post>>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                disposables.add(d);
+            }
+
+            @Override
+            public void onNext(List<Post> posts) {
+                adapter.setPosts(posts);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: ", e);
+            }
+
+            @Override
+            public void onComplete() {
+
+            }
+        });
     }
 
 

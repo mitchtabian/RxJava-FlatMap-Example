@@ -60,14 +60,11 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
     public class MyViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         OnPostClickListener onPostClickListener;
-        TextView title, numComments;
-        ProgressBar progressBar;
+        TextView title;
 
         public MyViewHolder(@NonNull View itemView, OnPostClickListener onPostClickListener) {
             super(itemView);
             title = itemView.findViewById(R.id.title);
-            numComments = itemView.findViewById(R.id.num_comments);
-            progressBar = itemView.findViewById(R.id.progress_bar);
 
             this.onPostClickListener = onPostClickListener;
 
@@ -77,23 +74,6 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
         public void bind(Post post){
             title.setText(post.getTitle());
 
-//            if(post.getComments() == null){
-//                showProgressBar(true);
-//                numComments.setText("");
-//            }
-//            else{
-//                showProgressBar(false);
-//                numComments.setText(String.valueOf(post.getComments().size()));
-//            }
-        }
-
-        private void showProgressBar(boolean showProgressBar){
-            if(showProgressBar) {
-                progressBar.setVisibility(View.VISIBLE);
-            }
-            else{
-                progressBar.setVisibility(View.GONE);
-            }
         }
 
         @Override
