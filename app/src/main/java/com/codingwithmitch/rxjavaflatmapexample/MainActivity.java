@@ -90,36 +90,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updatePost(final Post p){
-        Observable
-                .fromIterable(adapter.getPosts())
-                .filter(new Predicate<Post>() {
-                    @Override
-                    public boolean test(Post post) throws Exception {
-                        return post.getId() == p.getId();
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<Post>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-                        disposables.add(d);
-                    }
-
-                    @Override
-                    public void onNext(Post post) {
-                        Log.d(TAG, "onNext: updating post: " + post.getId() + ", thread: " + Thread.currentThread().getName());
-                        adapter.updatePost(post);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(TAG, "onError: ", e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                    }
-                });
+        adapter.updatePost(post);
     }
 
     private Observable<Post> getCommentsObservable(final Post post){
