@@ -5,37 +5,29 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
+
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
-import io.reactivex.Single;
-import io.reactivex.SingleSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 
 
-import android.app.Service;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ProgressBar;
 
-import com.codingwithmitch.rxjavaflatmapexample.models.Comment;
 import com.codingwithmitch.rxjavaflatmapexample.models.Post;
 import com.codingwithmitch.rxjavaflatmapexample.requests.ServiceGenerator;
 
-import org.reactivestreams.Subscription;
 
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 
