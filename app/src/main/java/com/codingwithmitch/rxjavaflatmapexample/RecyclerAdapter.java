@@ -19,12 +19,17 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
     private static final String TAG = "RecyclerAdapter";
 
     private List<Post> posts = new ArrayList<>();
+    private OnPostClickListener onPostClickListener;
+
+    public RecyclerAdapter(OnPostClickListener onPostClickListener) {
+        this.onPostClickListener = onPostClickListener;
+    }
 
     @NonNull
     @Override
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_post_list_item, null, false);
-        return new MyViewHolder(view);
+        return new MyViewHolder(view, onPostClickListener);
     }
 
     @Override
@@ -52,29 +57,34 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
         return posts;
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder{
+    public class MyViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
+        OnPostClickListener onPostClickListener;
         TextView title, numComments;
         ProgressBar progressBar;
 
-        public MyViewHolder(@NonNull View itemView) {
+        public MyViewHolder(@NonNull View itemView, OnPostClickListener onPostClickListener) {
             super(itemView);
             title = itemView.findViewById(R.id.title);
             numComments = itemView.findViewById(R.id.num_comments);
             progressBar = itemView.findViewById(R.id.progress_bar);
+
+            this.onPostClickListener = onPostClickListener;
+
+            itemView.setOnClickListener(this);
         }
 
         public void bind(Post post){
             title.setText(post.getTitle());
 
-            if(post.getComments() == null){
-                showProgressBar(true);
-                numComments.setText("");
-            }
-            else{
-                showProgressBar(false);
-                numComments.setText(String.valueOf(post.getComments().size()));
-            }
+//            if(post.getComments() == null){
+//                showProgressBar(true);
+//                numComments.setText("");
+//            }
+//            else{
+//                showProgressBar(false);
+//                numComments.setText(String.valueOf(post.getComments().size()));
+//            }
         }
 
         private void showProgressBar(boolean showProgressBar){
@@ -85,9 +95,17 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
                 progressBar.setVisibility(View.GONE);
             }
         }
+
+        @Override
+        public void onClick(View v) {
+            onPostClickListener.onPostClick(getAdapterPosition());
+        }
+    }
+
+    public interface OnPostClickListener{
+        void onPostClick(int position);
     }
 }
-
 
 
 
